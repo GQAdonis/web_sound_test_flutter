@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'package:record/record.dart';
 
 import 'custom_audio_player.dart';
@@ -70,8 +73,18 @@ class _AudioRecorderState extends State<AudioRecorder> {
     _recordDuration = 0;
 
     final path = await _audioRecorder.stop();
-
     if (path != null) {
+      final dio = Dio();
+      final response = await dio.get<Uint8List>(path,
+          options: Options(responseType: ResponseType.bytes));
+      if (response.statusCode == 200 && response.data != null) {
+        // now you have the bytes...
+        final buffer = response.data!.buffer;
+        final contentType = response.headers['Content-Type'];
+        print(
+            'size of audio file: ${buffer.lengthInBytes}\r\ncontent type: ${contentType}');
+      }
+
       widget.onStop(path);
     }
   }
@@ -252,6 +265,7 @@ class _MyAppState extends State<MyApp> {
                   onStop: (path) {
                     if (kDebugMode) print('Recorded file path: $path');
                     audioPath = path;
+
                     setState(() {
                       audioPath = path;
                       showPlayer = true;
